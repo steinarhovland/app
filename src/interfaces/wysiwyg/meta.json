@@ -1,7 +1,7 @@
 {
   "name": "$t:wysiwyg",
-  "version": "1.0.1",
-  "types": ["string"],
+  "version": "1.1.0",
+  "types": ["string", "json"],
   "icon": "format_quote",
   "recommended": {
     "length": 65534
@@ -13,32 +13,67 @@
       "interface": "text-input",
       "length": 200
     },
-    "buttons": {
-      "name": "$t:buttons",
-      "comment": "$t:buttons_comment",
-      "interface": "checkboxes",
-      "default": ["bold", "italic", "underline", "anchor", "h2", "h3", "quote"],
+    "output_format": {
+      "name": "$t:output_format",
+      "comment": "$t:output_format_comment",
+      "interface": "dropdown",
+      "default": "html",
       "options": {
-        "wrap": false,
         "choices": {
+          "html": "$t:output_html",
+          "json": "$t:output_json"
+        }
+      }
+    },
+    "table_header": {
+      "name": "$t:table_header",
+      "comment": "$t:table_header_comment",
+      "interface": "toggle",
+      "type": "BOOLEAN",
+      "default": false
+    },
+    "raw_default": {
+      "name": "$t:raw_default",
+      "comment": "$t:raw_default_comment",
+      "interface": "toggle",
+      "type": "BOOLEAN",
+      "default": false
+    },
+    "extensions": {
+      "name": "Extensions",
+      "comment": "What options to allow the user to use.",
+      "interface": "checkboxes",
+      "default": [
+        "bold", "italic", "underline", "h1", "h2", "h3", "h4", "blockquote",
+        "bullet_list", "ordered_list", "table", "history"
+      ],
+      "options": {
+        "draggable": "true",
+        "choices": {
+          "paragraph": "Paragraph",
+          "h1": "Heading 1",
+          "h2": "Heading 2",
+          "h3": "Heading 3",
+          "h4": "Heading 4",
+          "h5": "Heading 5",
+          "h6": "Heading 6",
           "bold": "Bold",
-          "italic": "Italic",
+          "strike": "Strike",
           "underline": "Underline",
-          "strikethrough": "Strikethrough",
-          "subscript": "Subscript",
-          "superscript": "Superscript",
-          "anchor": "Link",
-          "quote": "Quote",
-          "pre": "Pre",
-          "orderedlist": "Ordered List",
-          "unorderedlist": "Unordered List",
-          "h1": "H1",
-          "h2": "H2",
-          "h3": "H3",
-          "h4": "H4",
-          "h5": "H5",
-          "h6": "H6",
-          "removeFormat": "Remove all formatting"
+          "italic": "Italic",
+          "blockquote": "Blockquote",
+          "bullet_list": "Bullet List",
+          "ordered_list": "Ordered List",
+          "hard_break": "Hard Break",
+          "horizontal_rule": "Horizontal Rule",
+          "image": "Image",
+          "link": "Link",
+          "iframe": "Iframe",
+          "code": "Code",
+          "table": "Table",
+          "span": "Span Tag",
+          "code_block": "Code Block",
+          "history": "History (undo / redo)"
         }
       }
     }
@@ -48,17 +83,53 @@
       "wysiwyg": "WYSIWYG",
       "placeholder": "Placeholder",
       "placeholder_comment": "Enter placeholder text",
-      "buttons": "Buttons",
-      "buttons_comment": "Choose what buttons to use in the toolbar",
-      "distraction_free_mode": "Distracton Free Mode"
+      "link_add": "Click to add Link",
+      "link_edit": "Edit Link",
+      "link_info": "Type link and hit enter ...",
+      "link_delete": "Delete url from current selection",
+      "link_add_or_edit": "Add or edit link on selection",
+      "image_title": "Add image title",
+      "image_css_classes": "Add or edit CSS classes of image",
+      "image_alt": "Alternative image title",
+      "image_source": "Image source",
+      "image_height_px": "Height in px",
+      "image_width_px": "Width in px",
+      "toolbar_options": "Editor toolbar options",
+      "toolbar_options_comment": "Enable and sort extensions in the toolbar of ***ADD LINK TO README IN EXTENSION***",
+      "toolbar_cm_options": "Code Mirror Options",
+      "toolbar_cm_options_comment": "Code Mirror Options for the formatted raw view of this editor",
+      "show_history": "Show History",
+      "show_history_comment": "Show History in Editor menu toolbar",
+      "custom_url": "URL base for images",
+      "custom_url_comment": "Optional custom URL base for images including last '/'",
+      "distraction_free_mode": "Distraction Free Mode",
+      "distraction_free_mode_exit": "Exit Fullscreen Mode",
+      "wysiwyg_full": "Advanced WYSIWYG",
+      "table_header": "Table Headers",
+      "table_header_comment": "Enable headers for tables by default",
+      "raw_default": "Raw view as Default",
+      "output_format": "View Mode and Saving Format",
+      "output_format_comment": "Select Editor mode and the format to save in DB, keep in mind the schema type of the field as well on change. Be very carefully if your field is not empty!",
+      "output_html": "Save as HTML",
+      "output_json": "Save as JSON",
+      "output_md": "Save as Markdown",
+      "dark_mode": "Dark Mode"
     },
-	"fr-FR": {
-      "wysiwyg": "Editeur simplifié de contenu avec présentation « tel écran, tel écrit »",
+    "fr-FR": {
+      "wysiwyg_full": "Editeur avancé de contenu avec présentation « tel écran, tel écrit »",
       "placeholder": "Paramètre fictif",
       "placeholder_comment": "Texte statique qui est affiché avant la sélection d'une valeur",
-      "buttons": "Boutons",
-      "buttons_comment": "Choix des boutons utilisables à travers la barre d'outils",
-      "distraction_free_mode": "Mode « non distractif »"
+      "link_add": "Click to add Link",
+      "link_edit": "Edit Link",
+      "link_info": "Type link and hit enter ...",
+      "link_delete": "Delete url from current selection",
+      "link_add_or_edit": "Add or edit link on selection",
+      "toolbar_options": "Options de la barre d'outils",
+      "toolbar_options_comment": "***ADD LINK TO README IN EXTENSION***",
+      "show_history": "Show History",
+      "show_history_comment": "Show History in Editor menu toolbar",
+      "custom_url": "Adresse Web (URL) des images",
+      "custom_url_comment": "URL personnalisée optionnelle des images, incluant la barre verticale oblique (/) finale"
     }
   }
 }

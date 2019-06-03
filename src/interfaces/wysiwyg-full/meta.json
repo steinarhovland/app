@@ -1,7 +1,7 @@
 {
   "name": "$t:wysiwyg_full",
-  "version": "1.0.1",
-  "types": ["string"],
+  "version": "1.1.0",
+  "types": ["string", "json"],
   "icon": "format_quote",
   "recommended": {
     "length": 65534
@@ -13,56 +13,77 @@
       "interface": "text-input",
       "length": 200
     },
-    "upload_files": {
-      "name": "$t:upload_files",
-      "comment": "$t:upload_files_comment",
+    "output_format": {
+      "name": "$t:output_format",
+      "comment": "$t:output_format_comment",
+      "interface": "dropdown",
+      "default": "html",
+      "options": {
+        "choices": {
+          "html": "$t:output_html",
+          "json": "$t:output_json",
+          "md": "$t:output_md"
+        }
+      }
+    },
+    "medium_editor_style": {
+      "name": "$t:medium_editor_style",
+      "comment": "$t:medium_editor_style_comment",
       "interface": "toggle",
       "type": "BOOLEAN",
-      "default": true
+      "default": false
     },
-    "custom_url": {
-      "name": "$t:custom_url",
-      "comment": "$t:custom_url_comment",
-      "interface": "text-input",
-      "default": null,
-      "length": 250
+    "table_header": {
+      "name": "$t:table_header",
+      "comment": "$t:table_header_comment",
+      "interface": "toggle",
+      "type": "BOOLEAN",
+      "default": false
     },
-    "toolbarOptions": {
-      "name": "$t:toolbar_options",
-      "comment": "$t:toolbar_options_comment",
-      "interface": "json",
-      "options": {
-        "language": "application/json",
-        "template": [
-          ["bold", "italic", "underline", "strike"],
-          ["blockquote", "code-block"],
-          ["image", "choose-existing"],
-          [{ "header": 1 }, { "header": 2 }],
-          [{ "list": "ordered"}, { "list": "bullet" }],
-          [{ "script": "sub"}, { "script": "super" }],
-          [{ "indent": "-1"}, { "indent": "+1" }],
-          [{ "direction": "rtl" }],
-          [{ "size": ["small", false, "large", "huge"] }],
-          [{ "header": [1, 2, 3, 4, 5, 6, false] }],
-          [{ "color": [] }, { "background": [] }],
-          [{ "font": [] }],
-          [{ "align": [] }],
-          ["clean"]
-        ]
-      },
+    "raw_default": {
+      "name": "$t:raw_default",
+      "comment": "$t:raw_default_comment",
+      "interface": "toggle",
+      "type": "BOOLEAN",
+      "default": false
+    },
+    "extensions": {
+      "name": "Extensions",
+      "comment": "What options to allow the user to use.",
+      "interface": "checkboxes",
       "default": [
-        ["bold", "italic", "underline", "strike"],
-        ["blockquote", "code-block"],
-        ["image", "choose-existing"],
-        [{ "header": 1 }, { "header": 2 }],
-        [{ "list": "ordered"}, { "list": "bullet" }],
-        [{ "script": "sub"}, { "script": "super" }],
-        [{ "indent": "-1"}, { "indent": "+1" }],
-        [{ "header": [1, 2, 3, 4, 5, 6, false] }],
-        [{ "color": [] }, { "background": [] }],
-        [{ "align": [] }],
-        ["clean"]
-      ]
+        "bold", "italic", "underline", "h1", "h2", "h3", "h4", "blockquote", 
+        "bullet_list", "ordered_list", "table", "history"
+      ],
+      "options": {
+        "draggable": true,
+        "choices": {
+          "paragraph": "Paragraph",
+          "h1": "Heading 1",
+          "h2": "Heading 2",
+          "h3": "Heading 3",
+          "h4": "Heading 4",
+          "h5": "Heading 5",
+          "h6": "Heading 6",
+          "bold": "Bold",
+          "strike": "Strike",
+          "underline": "Underline",
+          "italic": "Italic",
+          "blockquote": "Blockquote",
+          "bullet_list": "Bullet List",
+          "ordered_list": "Ordered List",
+          "hard_break": "Hard Break",
+          "horizontal_rule": "Horizontal Rule",
+          "image": "Image",
+          "link": "Link",
+          "iframe": "Iframe",
+          "code": "Code",
+          "table": "Table",
+          "span": "Span Tag",
+          "code_block": "Code Block",
+          "history": "History (undo / redo)"
+        }
+      }
     }
   },
   "translation": {
@@ -70,23 +91,60 @@
       "wysiwyg_full": "Advanced WYSIWYG",
       "placeholder": "Placeholder",
       "placeholder_comment": "Enter placeholder text",
-      "toolbar_options": "Toolbar Options",
-      "toolbar_options_comment": "[QuillJS](https://quilljs.com/docs/modules/toolbar/) Toolbar options",
-      "upload_files": "Upload files",
-      "upload_files_comment": "Upload files to directus instead of using Base64 encoded images. Needs 'image' in toolbar.",
-      "custom_url": "URL base for images",
-      "custom_url_comment": "Optional custom URL base for images including last '/'"
+      "link_add": "Click to add Link",
+      "link_edit": "Edit Link",
+      "link_info": "Type link and hit enter ...",
+      "link_delete": "Delete url from current selection",
+      "link_add_or_edit": "Add or edit link on selection",
+      "image_title": "Add image title",
+      "image_css_classes": "Add or edit CSS classes of image",
+      "image_alt": "Alternative image title",
+      "image_source": "Image source",
+      "image_height_px": "Height in px",
+      "image_width_px": "Width in px",
+      "toolbar_options": "Editor toolbar options",
+      "toolbar_options_comment": "Enable and sort extensions in the toolbar of ***ADD LINK TO README IN EXTENSION***",
+      "show_history_comment": "Show History in Editor menu toolbar",
+      "table_header": "Table Headers",
+      "table_header_comment": "Enable headers for tables by default",
+      "distraction_free_mode": "Distraction Free Mode",
+      "distraction_free_mode_exit": "Exit Fullscreen Mode",
+      "raw_default": "Raw view as Default",
+      "output_format": "View Mode and Saving Format",
+      "output_format_comment": "Select Editor mode and the format to save in DB, keep in mind the schema type of the field as well on change. Be very carefully if your field is not empty!",
+      "output_html": "HTML Mode (Default)",
+      "output_json": "JSON Mode",
+      "output_md": "Markdown Mode (Field Schema Type must be STRING)",
+      "medium_editor_style": "Medium Style Editor",
+      "medium_editor_style_comment": "Display menubar in a bubble which pops up at the selected position in the text",
+      "go_back": "Go back to WYSIWYG editor"
     },
 	"fr-FR": {
       "wysiwyg_full": "Editeur avancé de contenu avec présentation « tel écran, tel écrit »",
       "placeholder": "Paramètre fictif",
       "placeholder_comment": "Texte statique qui est affiché avant la sélection d'une valeur",
+      "link_add": "Click to add Link",
+      "link_edit": "Edit Link",
+      "link_info": "Type link and hit enter ...",
+      "link_delete": "Delete url from current selection",
+      "link_add_or_edit": "Add or edit link on selection",
       "toolbar_options": "Options de la barre d'outils",
-      "toolbar_options_comment": "Options de la barre d'outils [QuillJS](https://quilljs.com/docs/modules/toolbar/)",
-      "upload_files": "Téléverser des fichiers",
-      "upload_files_comment": "Télécharger vers Directus des fichiers plutôt que d'utiliser des images encodées en Base64. Nécessite l'option « image » dans la barre d'outils",
-      "custom_url": "Adresse Web (URL) des images",
-      "custom_url_comment": "URL personnalisée optionnelle des images, incluant la barre verticale oblique (/) finale"
+      "toolbar_options_comment": "***ADD LINK TO README IN EXTENSION***",
+      "show_history": "Show History",
+      "show_history_comment": "Show History in Editor menu toolbar",
+      "table_header": "Table Headers",
+      "table_header_comment": "Enable headers for tables by default",
+      "distraction_free_mode": "Distraction Free Mode",
+      "distraction_free_mode_exit": "Exit Fullscreen Mode",
+      "raw_default": "Raw view as Default",
+      "output_format": "View Mode and Saving Format",
+      "output_format_comment": "Select Editor mode and the format to save in DB, keep in mind the schema type of the field as well on change. Be very carefully if your field is not empty!",
+      "output_html": "HTML Mode (Default)",
+      "output_json": "JSON Mode",
+      "output_md": "Markdown Mode (Field Schema Type must be STRING)",
+      "medium_editor_style": "Medium Style Editor",
+      "medium_editor_style_comment": "Display menubar in a bubble which pops up at the selected position in the text",
+      "go_back": "Go back to WYSIWYG editor"
     }
   }
 }

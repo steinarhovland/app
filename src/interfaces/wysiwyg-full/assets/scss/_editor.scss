@@ -1,0 +1,199 @@
+.interface-wysiwyg-container {
+  .interface-wysiwyg.editor__content, .editor__content {
+    > *[contenteditable="true"],
+    > *[contenteditable] {
+      min-height: 300px;
+      max-height: 60vh;
+      overflow-y: auto;
+      border: var(--input-border-width) solid var(--lighter-gray);
+      border-top: 0;
+      border-bottom-right-radius: var(--border-radius);
+      border-bottom-left-radius: var(--border-radius);
+      color: var(--dark-gray);
+      background-color: var(--white);
+      padding: calc(var(--page-padding) / 2);
+      line-height: 1.5;
+      transition: var(--fast) var(--transition);
+      transition-property: color, border-color;
+
+      code {
+        display: inline-block;
+        padding: 0 3px;
+        font-family: var(--family-monospace);
+        background-color: var(--lightest-gray);
+        color: var(--dark-gray);
+        border-radius: var(--border-radius);
+        border: 1px solid var(--lighter-gray);
+      }
+
+      pre {
+        max-width: 100%;
+        overflow-x: scroll;
+        margin: 3px auto;
+      }
+
+      blockquote {
+        padding-left: 7px;
+        border-left: 2px solid var(--lighter-gray);
+        color: var(--light-gray);
+        font-size: 140%;
+      }
+
+      a {
+        cursor: pointer;
+      }
+
+      strong {
+        font-weight: bolder;
+      }
+
+      h1 {
+        font-size: var(--size-2);
+      }
+
+      h2 {
+        font-size: var(--size-3)
+      }
+
+      h3 {
+        font-size: var(--size-4);
+      }
+
+      h4 {
+        font-size: var(--size-5);
+      }
+
+      p + p {
+        margin-bottom: 0;
+        &:last-of-type {
+          margin-bottom: 15px;
+        }
+      }
+
+      hr {
+        background-color: var(--lightest-gray);
+        height: 2px;
+        border-color: transparent;
+        margin-top: 5px;
+        margin-bottom: 5px;
+      }
+
+      ul, ol {
+        padding-left: 28px;
+        margin-bottom: 20px;
+      }
+    }
+    .tableWrapper {
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    img {
+      max-width: 100%;
+
+      &.ProseMirror-selectednode {
+        cursor: grab;
+        border: 1px solid var(--lighter-gray);
+        box-shadow: 0 0 3px var(--lighter-gray);
+
+        &:active {
+          cursor: grabbing;
+        }
+      }
+    }
+  }
+
+  &.fullscreen {
+    .interface-code, .vue-codemirror, .editor__content {
+      min-height: 100vh;
+      
+      .CodeMirror-scroll, .CodeMirror {
+        min-height: inherit;
+        border: 0;
+        > * {
+          max-width: var(--width-x-large);
+        }
+      }
+    }
+    .editor__raw {
+      .textarea, textarea {
+        transition: background-color var(--slow) ease-in-out, color var(--fast) ease-in-out;
+        border: 0;
+      }
+    }
+    .editor__rawformat {
+      left: 15px;
+      top: -24px;
+    }
+    .options {
+      top: -26px
+    }
+    .editor__content {
+      *:not(.ProseMirror) {
+        max-width: 780px;
+        margin-left: auto;
+        margin-right: auto;
+        transition: background-color var(--slow) ease-in-out, color var(--fast) ease-in-out;
+      }
+      .ProseMirror {
+        min-height: inherit;
+        transition: background-color var(--slow) ease-in-out, color var(--fast) ease-in-out;
+        border-color: transparent;
+      }
+    }
+
+    &.night {
+      .menububble__frame {
+        background-color: var(--darkest-gray);
+        padding: 0;
+        margin: 0;
+        .menubar__wrapper {
+          background-color: var(--darkest-gray);
+          border-color: var(--darker-gray);
+        }
+      }
+      .fullscreen-info {
+        color: var(--lightest-gray);
+      }
+      .editor__raw {
+        .textarea, textarea {
+          border: 0;
+          background-color: var(--black);
+          color: var(--lighter-gray);
+          &:focus,&:active,&::selection{
+            color: var(--lightest-gray);
+          }
+        }
+      }
+      .editor__content {
+        *:not(.ProseMirror) {
+          max-width: 780px;
+          margin-left: auto;
+          margin-right: auto;
+          color: var(--lighter-gray);
+
+          &:focus, &:active, &::selection {
+            color: var(--lightest-gray);
+          }
+          &::selection {
+            background-color: var(--light-gray);
+          }
+        }
+      }
+      .ProseMirror {
+        border-color: transparent;
+      }
+      .options {
+        i {
+          color: var(--lightest-gray);
+        }
+      }
+
+      .menubar__button.toggler {
+        min-height: 34px;
+        border-color: var(--darkest-gray);
+        background-color: var(--darker-gray);
+      }
+    }
+  }
+}

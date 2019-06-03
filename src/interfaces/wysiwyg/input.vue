@@ -1,108 +1,410 @@
 <template>
-  <div ref="input" :class="[{ fullscreen: distractionFree }, 'interface-wysiwyg-container']">
-    <div ref="editor" :class="['interface-wysiwyg', readonly ? 'readonly' : '']"></div>
-    <button
-      v-tooltip="$t('interfaces-wysiwyg-distraction_free_mode')"
-      type="button"
-      class="fullscreen-toggle"
-      @click="distractionFree = !distractionFree"
-    >
-      <v-icon :name="fullscreenIcon" />
-    </button>
+  <div
+    :id="name"
+    class="interface-wysiwyg-container editor"
+    :class="{ fullscreen: distractionFree, night: blackMode }"
+    :name="name"
+  >
+    <EditorContent
+      v-if="editor"
+      :options="options"
+      :parent-value="mdMode ? stagedMD : editorHTML"
+      :parent-json="editorJSON"
+      :update-value="updateValue"
+      :show-source="rawView"
+      :editor="editor"
+      :is-blackmode="blackMode"
+      :is-fullscreen="distractionFree"
+    />
+
+    <Bubble
+      v-if="editor"
+      :options="options"
+      :editor="editor"
+      :buttons="options.extensions"
+      :show-source="rawView"
+      :show-link="linkBubble"
+      :toggle-source="showSource"
+      :toggle-link="toggleLinkBar"
+    />
+
+    <!--@todo how to get the field name of the field without $parent?-->
+    <!--<p v-if="distractionFree" class="fullscreen-info">
+      {{ $parent.$parent.field.name }}
+    </p>-->
+
+    <div class="options">
+      <button
+        v-if="rawView"
+        v-tooltip="$t('interfaces-wysiwyg-go_back')"
+        type="button"
+        class="back"
+        @click="showSource"
+      >
+        <v-icon name="code" />
+      </button>
+      <button
+        v-if="distractionFree"
+        v-tooltip="$t('interfaces-wysiwyg-dark_mode')"
+        type="button"
+        class="black-mode"
+        @click="blackMode = !blackMode"
+      >
+        <v-icon name="iso" />
+      </button>
+      <button
+        v-tooltip="
+          !distractionFree
+            ? $t('interfaces-wysiwyg-distraction_free_mode')
+            : $t('interfaces-wysiwyg-distraction_free_mode_exit')
+        "
+        type="button"
+        class="fullscreen-toggle"
+        @click="distractionFree = !distractionFree"
+      >
+        <v-icon :name="!distractionFree ? 'fullscreen' : 'cancel'" />
+      </button>
+    </div>
   </div>
 </template>
 
 <script>
-import MediumEditor from "medium-editor";
-import "medium-editor/dist/css/medium-editor.css";
-
 import mixin from "@directus/extension-toolkit/mixins/interface";
+import { Editor } from "tiptap";
+import EditorContent from "./../wysiwyg-full/components/EditorContent";
+import Bubble from "./../wysiwyg-full/components/Bubble";
+import showdown from "showdown/dist/showdown.min";
+
+import {
+  Blockquote,
+  CodeBlock,
+  HardBreak,
+  Heading,
+  HorizontalRule,
+  OrderedList,
+  BulletList,
+  ListItem,
+  Bold,
+  Code,
+  Italic,
+  Link,
+  Strike,
+  Underline,
+  History,
+  TableHeader,
+  TableRow,
+  TableCell,
+  Table
+} from "tiptap-extensions";
+
+import { Image, Span } from "./../wysiwyg-full/extensions";
 
 export default {
   name: "InterfaceWysiwyg",
+  components: {
+    EditorContent,
+    Bubble
+  },
   mixins: [mixin],
+
   data() {
     return {
-      distractionFree: false
+      blackMode: false,
+      distractionFree: false,
+      linkBubble: false,
+      editorHTML: "",
+      editorJSON: this.jsonMode ? (this.value ? this.value : {}) : null,
+      stagedJSON: null,
+      stagedMD: "",
+      editor: null,
+      rawView: false,
+      showLinkBar: false
     };
   },
+
   computed: {
-    editorOptions() {
-      return {
-        disableEditing: this.readonly,
-        placeholder: {
-          text: this.options.placeholder || "",
-          hideOnClick: true
-        },
-        toolbar: this.readonly
-          ? false
-          : {
-              buttons: this.options.buttons
-            }
-      };
+    jsonMode() {
+      return this.options.output_format === "json";
     },
-    fullscreenIcon() {
-      return this.distractionFree ? "close" : "fullscreen";
+
+    htmlMode() {
+      return this.options.output_format === "html";
+    },
+
+    mdMode() {
+      return this.options.output_format === "md";
+    },
+
+    converter() {
+      let conv = new showdown.Converter({
+        tablesHeaderId: false,
+        tables: false,
+        strikethrough: true,
+        omitExtraWLInCodeBlocks: true,
+        backslashEscapesHTMLTags: false,
+        emoji: true,
+        simpleLineBreaks: true,
+        metadata: true,
+        underline: true,
+        parseImgDimensions: false
+      });
+      return conv;
     }
   },
+
   watch: {
-    options() {
-      this.destroy();
-      this.init();
-    },
     value(newVal) {
-      if (newVal !== this.editor.getContent()) {
-        this.editor.setContent(newVal);
+      if (newVal && !this.rawView) {
+        this.editorHTML = newVal;
       }
-    },
-    distractionFree(on) {
-      if (on) {
-        this.$helpers.disableBodyScroll(this.$refs.input);
-      } else {
-        this.$helpers.enableBodyScroll(this.$refs.input);
+
+      if (this.type === "string") {
+        // Saving a string schema when json mode is active
+        if (this.$props.options.output_format === "json" && this.editorJSON) {
+          this.editorHTML = JSON.stringify(this.editorJSON);
+          this.$emit("input", this.editorHTML);
+        }
+      }
+
+      if (this.rawView) {
+        if (this.$props.options.output_format !== "json" && this.type === "string") {
+          if (this.$props.options.output_format === "md") {
+            this.$emit("input", newVal);
+          } else {
+            this.$emit("input", this.editorHTML ? this.editorHTML : newVal);
+          }
+        }
       }
     }
   },
+
   mounted() {
-    this.init();
+    this.initEditor();
   },
   beforeDestroy() {
-    this.destroy();
+    this.editor.destroy();
   },
   methods: {
-    init() {
-      this.editor = new MediumEditor(this.$refs.editor, this.editorOptions);
+    convertMarkdown($val) {
+      if ($val) {
+        // console.log(this.converter)
+        // console.log(this.converter.getMetadata())
+        // console.log(this.converter.getOptions())
+        // this.converter.setOption("tables", false);
+        // this.converter.setFlavor("github");
+        this.stagedMD = this.converter.makeMd($val);
+      }
+    },
+    convertHtml($val) {
+      if ($val) {
+        return this.converter.makeHtml($val);
+      }
+    },
 
-      if (this.value) {
-        this.editor.setContent(this.value);
+    updateValue: function(value) {
+      if (this.htmlMode) {
+        if (value !== this.editorHTML) {
+          this.editorHTML = value;
+          this.editor.view.dom.innerHTML = value;
+        }
+        // remove empty value on toggle to raw mode and emit empty value to save in DB
+        if (value === "<p><br></p>" || value === "<p></p>") {
+          this.editorHTML = "";
+          this.$emit("input", "");
+        }
+        // Override Json output for raw view mode in HTML mode
+        if (this.type === "json") {
+          this.editorJSON = value;
+        }
+      } else if (this.jsonMode) {
+        if (!this.stagedJSON) {
+          try {
+            JSON.parse(value);
+            this.editorJSON = JSON.parse(value);
+            this.$emit("input", this.editorJSON);
+          } catch (e) {
+            this.$emit("input", value);
+          }
+        } else if (this.stagedJSON) {
+          this.$emit("input", this.stagedJSON);
+        }
+      } else if (this.mdMode) {
+        if (!this.rawView) {
+          this.$emit("input", this.value);
+        } else {
+          this.editor.view.dom.innerHTML = this.convertHtml(this.editorHTML);
+          this.editorHTML = value;
+          this.$emit("input", value);
+        }
+      }
+    },
+
+    toggleLinkBar() {
+      this.showLinkBar = !this.showLinkBar;
+    },
+
+    showSource: function() {
+      if (!this.rawView && !this.jsonMode) {
+        this.updateValue(this.editor.view.dom.innerHTML);
       }
 
-      this.editor.origElements.addEventListener("input", () => {
-        const content = this.editor.getContent();
-
-        if (content === "<p><br></p>") {
-          return this.$emit("input", null);
+      if (this.jsonMode) {
+        if (this.rawView) {
+          try {
+            JSON.parse(this.value);
+            this.editor.setContent(JSON.parse(this.value));
+          } catch (e) {
+            this.editor.setContent(this.value);
+          }
+        } else {
+          this.updateValue(this.editorJSON);
         }
+      }
 
-        this.$emit("input", content);
-      });
+      if (this.mdMode) {
+        if (this.rawView) {
+          this.stagedMD = this.editorHTML;
+        } else {
+          this.editor.view.dom.innerHTML = this.convertHtml(this.editorHTML);
+        }
+      }
+
+      return (this.rawView = !this.rawView);
     },
-    destroy() {
-      this.editor.destroy();
+
+    initEditor() {
+      const extensions = this.options.extensions
+        .map(ext => {
+          switch (ext) {
+            case "blockquote":
+              return new Blockquote();
+            case "bold":
+              return new Bold();
+            case "bullet_list":
+              return [new ListItem(), new BulletList()];
+            case "code":
+              return new Code();
+            case "code_block":
+              return new CodeBlock();
+            case "hardbreak":
+              return new HardBreak();
+            case "history":
+              return new History();
+            case "horizontal_rule":
+              return new HorizontalRule();
+            case "image":
+              return new Image();
+            case "italic":
+              return new Italic();
+            case "link":
+              return new Link();
+            case "ordered_list":
+              return [new OrderedList(), new ListItem()];
+            case "strike":
+              return new Strike();
+            case "table":
+              return [new Table(), new TableHeader(), new TableCell(), new TableRow()];
+            case "underline":
+              return new Underline();
+            case "span":
+              return new Span();
+            default:
+              return new Heading();
+          }
+        })
+        .filter(ext => ext)
+        .flat();
+
+      this.editorHTML = this.value ? this.value : "";
+
+      // Handle raw json data in for string schema type
+      let stringifiedJson = null;
+      if (this.type === "string" && this.value) {
+        if (this.jsonMode) {
+          try {
+            JSON.parse(this.value);
+            this.editorJSON = JSON.parse(this.value);
+          } catch (e) {
+            console.warn(
+              "Could not Parse JSON to HTML. Your field schema doesn`t match the editor mode. "
+            );
+          }
+        } else if (this.htmlMode) {
+          try {
+            // try to convert JSON back to html, previously stored in md JSON mode
+            JSON.parse(this.value);
+            stringifiedJson = JSON.parse(this.value);
+          } catch (e) {
+            // try to convert markdown back to html, previously stored in MD mode
+            try {
+              stringifiedJson = null;
+              this.editorHTML = this.convertHtml(this.value);
+            } catch (e) {
+              console.warn("Could not Parse JSON or Markdown.");
+            }
+          }
+        } else if (this.mdMode) {
+          stringifiedJson = null;
+          this.stagedMD = this.editorHTML;
+          this.editorHTML = this.convertHtml(this.editorHTML);
+        }
+      }
+
+      // Init editor options block
+      const options = {
+        extensions: extensions
+      };
+
+      if (this.jsonMode) {
+        options.content = this.editorJSON ? this.editorJSON : this.value;
+        options.onUpdate = ({ getJSON }) => {
+          this.editorJSON = getJSON();
+          this.$emit("input", getJSON());
+        };
+      } else {
+        options.content = stringifiedJson ? stringifiedJson : this.editorHTML;
+        options.onUpdate = ({ getHTML, getJSON }) => {
+          this.stagedJSON = getJSON();
+          if (this.type === "json") {
+            this.$emit("input", this.stagedJSON);
+          } else {
+            if (this.mdMode) {
+              if (this.rawView) {
+                this.$emit("input", this.editorHTML);
+              } else {
+                this.convertMarkdown(getHTML());
+                this.$emit("input", this.stagedMD);
+              }
+            } else {
+              this.$emit("input", getHTML());
+            }
+          }
+        };
+      }
+
+      this.editor = new Editor(options);
     }
   }
 };
 </script>
 
-<style lang="scss">
-.interface-wysiwyg-container {
+<style lang="scss" scoped>
+.interface-wysiwyg-container,
+.interface-wysiwyg {
   position: relative;
   width: 100%;
+  min-height: inherit;
   max-width: var(--width-x-large);
+  --wysiwyg-padding: calc(var(--page-padding) / 2);
+  border: var(--input-border-width) solid var(--lighter-gray);
+  border-radius: var(--border-radius);
+  -webkit-transition: border-color var(--fast) var(--transition);
+  transition: border-color var(--fast) var(--transition), background-color var(--slow) ease-in-out,
+    color var(--fast) ease-in-out;
 
   &.fullscreen {
     position: fixed;
-    top: 0;
+    top: 31px;
     left: 0;
     right: 0;
     bottom: 0;
@@ -111,308 +413,65 @@ export default {
     max-height: 100%;
     background-color: var(--body-background);
 
-    button.fullscreen-toggle {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 101;
-      background-color: var(--darker-gray);
-      color: var(--white);
-      &:hover {
+    .editor__content {
+      min-height: 100vh;
+      textarea {
+        min-height: inherit;
+      }
+    }
+    .raw-editor {
+      min-height: 100vh;
+    }
+    &:after {
+      transition: inherit;
+      content: "";
+      z-index: -1;
+      position: absolute;
+      top: -33px;
+      width: 100%;
+      height: 35px;
+      background-color: var(--darkest-gray);
+    }
+    &.night {
+      &:after {
+        background-color: var(--black);
+      }
+
+      .fullscreen-info {
         background-color: var(--darkest-gray);
       }
     }
-
-    .interface-wysiwyg {
-      color: var(--dark-gray);
-
-      border: none;
-      border-radius: 0;
-      padding: 80px 80px 100px 80px;
-      max-width: 880px;
-      margin: 0 auto;
-      height: 100%;
-      max-height: 100%;
-
-      font-size: 21px;
-      line-height: 33px;
-      font-weight: 400;
-
-      p {
-        margin-top: 30px;
-      }
-
-      blockquote {
-        margin-top: 30px;
-        padding-left: 20px;
-      }
-
-      h1 {
-        margin-top: 60px;
-      }
-
-      h2 {
-        margin-top: 60px;
-      }
-
-      h3 {
-        margin-top: 40px;
-      }
-
-      h4 {
-        margin-top: 30px;
-      }
-
-      h5 {
-        margin-top: 20px;
-      }
-
-      h6 {
-        margin-top: 20px;
-      }
-    }
   }
 }
 
-button.fullscreen-toggle {
+.options {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  background-color: var(--white);
-  color: var(--dark-gray);
-  opacity: 0.4;
-  border-radius: 100%;
-  padding: 4px;
-  &:hover {
-    opacity: 1;
+  z-index: 9;
+  right: 0;
+  top: 7px;
+
+  .back {
+    float: left;
+  }
+  > button {
+    min-width: 40px;
   }
 }
 
-.interface-wysiwyg {
-  position: relative;
+.fullscreen-info {
+  position: absolute;
+  padding-left: 10px;
+  top: -48px;
+  z-index: 1;
   width: 100%;
-  border: var(--input-border-width) solid var(--lighter-gray);
-  border-radius: var(--border-radius);
-  color: var(--gray);
-  padding: 12px 15px;
-  transition: var(--fast) var(--transition);
-  transition-property: color, border-color, padding;
-  min-height: 200px;
-  max-height: 800px;
-  overflow: scroll;
-  font-weight: 400;
-  line-height: 1.7em;
-
-  & > :first-child {
-    padding-top: 0;
-    margin-top: 0;
-  }
-
-  &::placeholder {
-    color: var(--light-gray);
-  }
-
-  &[contenteditable="true"] {
-    cursor: default;
-    background-color: var(--white);
-    &:hover {
-      transition: none;
-      border-color: var(--light-gray);
-    }
-
-    &:focus {
-      color: var(--darker-gray);
-      border-color: var(--darker-gray);
-      outline: 0;
-    }
-
-    &:focus + i {
-      color: var(--darkest-gray);
-    }
-  }
-
-  &.readonly {
-    background-color: var(--lightest-gray);
-    cursor: not-allowed;
-    &:focus {
-      color: var(--gray);
-    }
-  }
-
-  &:-webkit-autofill {
-    box-shadow: inset 0 0 0 1000px var(--white) !important;
-    color: var(--dark-gray) !important;
-    -webkit-text-fill-color: var(--dark-gray) !important;
-  }
-
-  &:-webkit-autofill,
-  &:-webkit-autofill:hover,
-  &:-webkit-autofill:focus {
-    border: var(--input-border-width) solid var(--lighter-gray);
-    background-color: var(--white);
-    box-shadow: inset 0 0 0 2000px var(--white);
-  }
-
-  b,
-  strong {
-    font-weight: 700;
-  }
-
-  a {
-    color: var(--darkest-gray);
-  }
-
-  p {
-    margin-top: 20px;
-  }
-
-  blockquote {
-    border-left: 4px solid var(--lightest-gray);
-    font-style: italic;
-    margin-top: 20px;
-    padding-left: 20px;
-  }
-
-  pre {
-    max-width: 100%;
-    background-color: var(--body-background);
-    padding: 20px 10px;
-    font-family: "Roboto Mono", mono;
-    overflow: scroll;
-    margin-top: 20px;
-  }
-
-  h1 {
-    font-size: 3em;
-    line-height: 1.2em;
-    font-weight: 600;
-    margin-top: 30px;
-  }
-  h2 {
-    font-size: 2.5em;
-    line-height: 1.2em;
-    font-weight: 600;
-    margin-top: 30px;
-  }
-  h3 {
-    font-size: 2em;
-    line-height: 1.2em;
-    font-weight: 600;
-    margin-top: 30px;
-  }
-  h4 {
-    font-size: 1.87em;
-    line-height: 1.2em;
-    font-weight: 600;
-    margin-top: 20px;
-  }
-  h5 {
-    font-size: 1.5em;
-    line-height: 1.2em;
-    font-weight: 600;
-    margin-top: 20px;
-  }
-  h6 {
-    font-size: 1.2em;
-    line-height: 1.2em;
-    font-weight: 600;
-    margin-top: 20px;
-  }
-}
-
-.medium-toolbar-arrow-under:after {
-  top: 40px;
-  border-color: var(--darker-gray) transparent transparent transparent;
-}
-
-.medium-toolbar-arrow-over:before {
-  top: -8px;
-  border-color: transparent transparent var(--darker-gray) transparent;
-}
-
-.medium-editor-toolbar {
-  background-color: var(--darker-gray);
-  border-radius: var(--border-radius);
-}
-
-.medium-editor-toolbar li {
-  padding: 0;
-}
-
-.medium-editor-toolbar li button {
-  min-width: 40px;
-  height: 40px;
-  line-height: 0;
-  border: none;
-  border-right: 1px solid var(--dark-gray);
-  background-color: transparent;
-  color: var(--white);
-  transition: background-color var(--fast) var(--transition), color var(--fast) var(--transition);
-}
-
-.medium-editor-toolbar li button:hover {
-  background-color: var(--dark-gray);
-  color: var(--white);
-}
-
-.medium-editor-toolbar li .medium-editor-button-active {
-  background-color: var(--dark-gray);
-  color: var(--white);
-}
-
-.medium-editor-toolbar li .medium-editor-button-first {
-  border-radius: var(--border-radius) 0 0 var(--border-radius);
-}
-
-.medium-editor-toolbar li .medium-editor-button-last {
-  border-right: none;
-  border-radius: 0 var(--border-radius) var(--border-radius) 0;
-}
-
-.medium-editor-toolbar-form .medium-editor-toolbar-input {
-  height: 40px;
-  background: var(--darker-gray);
-  border-right: 1px solid var(--gray);
-  color: var(--white);
-  padding-left: 20px;
-}
-
-.medium-editor-toolbar-form .medium-editor-toolbar-input::-webkit-input-placeholder {
-  color: var(--white);
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.medium-editor-toolbar-form .medium-editor-toolbar-input:-moz-placeholder {
-  /* Firefox 18- */
-  color: var(--white);
-}
-
-.medium-editor-toolbar-form .medium-editor-toolbar-input::-moz-placeholder {
-  /* Firefox 19+ */
-  color: var(--white);
-}
-
-.medium-editor-toolbar-form .medium-editor-toolbar-input:-ms-input-placeholder {
-  color: var(--white);
-}
-
-.medium-editor-toolbar-form a {
-  color: var(--white);
-}
-
-.medium-editor-toolbar-anchor-preview {
-  background: var(--gray);
-  color: var(--white);
-  border-radius: var(--border-radius);
-}
-
-.medium-editor-toolbar-anchor-preview a {
-  padding: 0px 6px;
-}
-
-.medium-editor-placeholder:after {
-  color: var(--lighter-gray);
-  font-style: normal;
-  font-weight: 500;
+  padding-top: 24px;
+  min-height: 24px;
+  max-width: 100%;
+  font-size: var(--size-2);
+  padding-bottom: 6px;
+  color: var(--darkest-gray);
+  background-color: var(--body-background);
+  transition: background-color var(--slow) ease-in-out, color var(--fast) ease-in-out,
+    border-bottom 0.3s ease-in-out;
 }
 </style>
