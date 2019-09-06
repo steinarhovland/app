@@ -13,8 +13,10 @@
         <label class="project-switcher">
           <select
             v-if="Object.keys(urls).length > 1 || allowOther"
+            id="selectedUrl"
             v-model="selectedUrl"
             :disabled="loading"
+            name="selectedUrl"
           >
             <option
               v-for="(name, u) in urls"
