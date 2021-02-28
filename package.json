@@ -18,7 +18,7 @@
     "@directus/format-title": "^2.3.1",
     "@directus/sdk-js": "^5.3.4",
     "@rijk/jwt-payload": "^1.0.1",
-    "axios": "^0.19.0",
+    "axios": "^0.21.1",
     "body-scroll-lock": "^2.6.4",
     "codemirror": "^5.48.0",
     "convert-range": "^1.1.0",
